@@ -52,6 +52,7 @@ program
     'specify a path of executable Chrome(Chromium) you installed',
   )
   .option('--verbose', 'verbose log output')
+  .option('-c, --cover', 'whether to include cover from EPUB')
   .parse(process.argv);
 
 if (program.args.length < 1) {
