@@ -58,6 +58,10 @@ custom(comma separated): 182mm,257mm or 8.5in,11in`,
     '--executable-chromium <path>',
     'specify a path of executable Chrome (or Chromium) you installed',
   )
+  .option(
+    '-c, --cover [path]',
+    'whether to include cover from EPUB, or path to a cover to use'
+    )
   .parse(process.argv);
 
 build({
@@ -76,6 +80,7 @@ build({
   timeout: program.timeout,
   sandbox: program.sandbox,
   executableChromium: program.executableChromium,
+  cover: program.cover,
 }).catch(gracefulError);
 
 export default async function build(cliFlags: BuildCliFlags) {

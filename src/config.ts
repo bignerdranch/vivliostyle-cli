@@ -1,11 +1,11 @@
 import Ajv from 'ajv';
 import fs from 'fs';
 import { JSDOM } from 'jsdom';
-import path from 'upath';
 import pkgUp from 'pkg-up';
 import process from 'process';
 import puppeteer from 'puppeteer';
 import resolvePkg from 'resolve-pkg';
+import path from 'upath';
 import { processMarkdown } from './markdown';
 import configSchema from './schema/vivliostyle.config.schema.json';
 import { PageSize } from './server';
@@ -80,6 +80,7 @@ export interface CliFlags {
   timeout?: number;
   sandbox?: boolean;
   executableChromium?: string;
+  cover?: string | boolean;
 }
 
 export interface MergedConfig {
@@ -95,7 +96,7 @@ export interface MergedConfig {
   projectAuthor: string;
   language: string;
   toc: string | boolean;
-  cover: string | undefined;
+  cover: string | boolean;
   verbose: boolean;
   timeout: number;
   sandbox: boolean;
@@ -298,7 +299,11 @@ export async function mergeConfig<T extends CliFlags>(
       : config?.toc !== undefined
       ? config.toc
       : false;
-  const cover = contextResolve(context, config?.cover) ?? undefined;
+  const coverFlag = cliFlags.cover ?? config?.cover;
+  const cover =
+    (typeof coverFlag === 'string'
+      ? contextResolve(context, coverFlag)
+      : coverFlag) ?? false;
   const pressReady = cliFlags.pressReady ?? config?.pressReady ?? false;
 
   const verbose = cliFlags.verbose ?? false;

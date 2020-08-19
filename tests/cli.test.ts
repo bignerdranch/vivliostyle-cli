@@ -1,7 +1,6 @@
 import execa from 'execa';
 import fileType from 'file-type';
 import fs from 'fs';
-import path from 'upath';
 import {
   PDFCatalog,
   PDFDict,
@@ -10,12 +9,14 @@ import {
   PDFName,
   PDFNumber,
 } from 'pdf-lib';
+import path from 'upath';
 
 const rootPath = path.resolve(__dirname, '..');
 const packageJSON = require(path.join(rootPath, 'package.json'));
 const cliPath = path.join(rootPath, packageJSON.bin.vivliostyle);
 const fixtureRoot = path.resolve(__dirname, 'fixtures/wood');
 const fixtureFile = path.join(fixtureRoot, 'index.html');
+const fixtureCover = path.join(fixtureRoot, 'images/cover.jpg');
 
 const localTmpDir = path.join(rootPath, 'tmp');
 fs.mkdirSync(localTmpDir, { recursive: true });
@@ -123,4 +124,34 @@ it('generates a PDF with metadata', async () => {
   const intro = outlines.lookup(PDFName.of('First'), PDFDict);
   const introTitle = intro.lookup(PDFName.of('Title'), PDFHexString);
   expect(introTitle.sizeInBytes()).toBe(62);
+}, 20000);
+
+it.only('generates a PDF with cover', async () => {
+  const outputPath = path.join(localTmpDir, 'test-cover.pdf');
+
+  try {
+    const response = await vivliostyleCLI([
+      'build',
+      '-s',
+      'Letter',
+      '--title',
+      'Wood Engraving',
+      '--cover',
+      fixtureCover,
+      '-o',
+      outputPath,
+      fixtureFile,
+    ]);
+    expect(response.stdout).toContain('has been created');
+  } catch (err) {
+    throw err.stderr;
+  }
+
+  const bytes = fs.readFileSync(outputPath);
+  const document = await PDFDocument.load(bytes);
+
+  const page = document.getPage(0);
+  const resources = page.node.lookup(PDFName.of('Resources'), PDFDict);
+  const xObjects = resources.lookup(PDFName.of('XObject'), PDFDict);
+  expect(xObjects.entries().length).toBe(1);
 }, 20000);

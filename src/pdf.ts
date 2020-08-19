@@ -1,11 +1,12 @@
 import chalk from 'chalk';
 import fs from 'fs';
-import path from 'upath';
+import { lookup as mime } from 'mime-types';
 import puppeteer from 'puppeteer';
 import shelljs from 'shelljs';
 import terminalLink from 'terminal-link';
+import path from 'upath';
 import url from 'url';
-import { Meta, Payload, TOCItem } from './broker';
+import { CoverItem, Meta, Payload, TOCItem } from './broker';
 import { MergedConfig, ParsedEntry } from './config';
 import { PostProcess } from './postprocess';
 import { getBrokerUrl, launchSourceAndBrokerServer } from './server';
@@ -38,6 +39,7 @@ export async function buildPDF({
   pressReady,
   entryContextDir,
   entries,
+  cover,
 }: BuildPdfOptions) {
   logUpdate(`Launching build environment`);
   const stat = await statFile(input);
@@ -139,6 +141,7 @@ export async function buildPDF({
 
   const metadata = await loadMetadata(page);
   const toc = await loadTOC(page);
+  const coverItem = await loadCover(page, cover);
 
   await page.emulateMediaType('print');
   await page.waitForFunction(
@@ -171,6 +174,7 @@ export async function buildPDF({
   const post = await PostProcess.load(pdf);
   await post.metadata(metadata);
   await post.toc(toc);
+  await post.cover(coverItem, root);
   await post.save(outputFile, { pressReady });
 
   return outputFile;
@@ -199,4 +203,19 @@ async function loadTOC(page: puppeteer.Page): Promise<TOCItem[]> {
         window.coreViewer.showTOC(true);
       }),
   );
+}
+
+async function loadCover(
+  page: puppeteer.Page,
+  cover: boolean | string,
+): Promise<CoverItem | null> {
+  if (typeof cover === 'string') {
+    const mediaType = mime(cover);
+    if (mediaType) {
+      return { src: cover, mediaType: mediaType };
+    }
+  } else if (cover) {
+    return page.evaluate(() => window.coreViewer.getCover());
+  }
+  return null;
 }

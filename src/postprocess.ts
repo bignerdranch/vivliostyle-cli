@@ -1,6 +1,5 @@
 import fs from 'fs';
 import os from 'os';
-import path from 'upath';
 import {
   PDFDict,
   PDFDocument,
@@ -10,8 +9,10 @@ import {
   PDFRef,
 } from 'pdf-lib';
 import * as pressReadyModule from 'press-ready';
+import path from 'upath';
+import url from 'url';
 import { v1 as uuid } from 'uuid';
-import { Meta, TOCItem } from './broker';
+import { CoverItem, Meta, TOCItem } from './broker';
 import { startLogging, stopLogging } from './util';
 
 export interface SaveOption {
@@ -163,5 +164,37 @@ export class PostProcess {
     outline.set(PDFName.of('Count'), PDFNumber.of(countAll(itemsWithRefs)));
     this.document.context.assign(outlineRef, outline);
     this.document.catalog.set(PDFName.of('Outlines'), outlineRef);
+  }
+
+  async cover(cover: CoverItem | null, root: string) {
+    if (!cover) return;
+
+    const pathName = url.parse(cover.src).pathname;
+    if (!pathName) return;
+
+    const imagePath = path.resolve(root, pathName);
+    let image;
+    switch (cover.mediaType) {
+      case 'image/png': {
+        const pngBytes = await fs.promises.readFile(imagePath);
+        image = await this.document.embedPng(pngBytes);
+        break;
+      }
+      case 'image/jpeg': {
+        const jpgBytes = await fs.promises.readFile(imagePath);
+        image = await this.document.embedJpg(jpgBytes);
+        break;
+      }
+      default:
+        return;
+    }
+
+    const targetWidth = this.document.getPage(0).getWidth();
+    const imageSize = image.scale(targetWidth / image.width);
+    const page = this.document.insertPage(0, [
+      imageSize.width,
+      imageSize.height,
+    ]);
+    page.drawImage(image, imageSize);
   }
 }

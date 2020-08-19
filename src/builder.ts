@@ -6,8 +6,8 @@ import h from 'hastscript';
 import { imageSize } from 'image-size';
 import { JSDOM } from 'jsdom';
 import { lookup as mime } from 'mime-types';
-import path from 'upath';
 import shelljs from 'shelljs';
+import path from 'upath';
 import { contextResolve, Entry, MergedConfig, ParsedEntry } from './config';
 import { processMarkdown } from './markdown';
 import { debug } from './util';
@@ -19,7 +19,7 @@ export interface ManifestOption {
   modified: string;
   entries: Entry[];
   toc?: boolean | string;
-  cover?: string;
+  cover: boolean | string;
 }
 
 export interface ManifestEntry {
@@ -52,7 +52,7 @@ export function generateManifest(outputPath: string, options: ManifestOption) {
     });
   }
 
-  if (options.cover) {
+  if (typeof options.cover === 'string') {
     const { width, height, type } = imageSize(options.cover);
     if (type) {
       const mimeType = mime(type);
@@ -240,7 +240,7 @@ Run ${chalk.green.bold('vivliostyle init')} to create ${chalk.bold(
   }
 
   // copy cover
-  if (cover) {
+  if (typeof cover === 'string') {
     const { ext } = path.parse(cover);
     shelljs.cp(cover, path.join(distDir, `cover${ext}`));
   }
